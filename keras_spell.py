@@ -30,6 +30,7 @@ from keras.layers import recurrent
 random_seed(123) # Reproducibility
 
 # Parameters for the model and dataset
+DATASET_FILENAME = 'data/dataset/news.2011.en.shuffled'
 NUMBER_OF_ITERATIONS = 20000
 EPOCHS_PER_ITERATION = 5
 RNN = recurrent.LSTM
@@ -222,10 +223,10 @@ def clean_text(text):
     return result
 
 
-def read_news(_most_popular_chars_are=""):
+def read_news(dataset_filename):
     """Read the news corpus"""
     print("reading news")
-    news = open(os.path.expanduser("~/downloads/training-monolingual/news.2011.en.shuffled")).read().decode('utf-8')
+    news = open(dataset_filename).read().decode('utf-8')
     print("read news")
     news = clean_text(news)
     print("cleaned text")
@@ -289,7 +290,7 @@ def generate_news_data(corpus):
 
 def main_news():
     """Main"""
-    questions, answers = generate_news_data(read_news())
+    questions, answers = generate_news_data(read_news(DATASET_FILENAME))
     chars_answer = set.union(*(set(answer) for answer in answers))
     chars_question = set.union(*(set(question) for question in questions))
     chars = list(set.union(chars_answer, chars_question))
