@@ -10,6 +10,8 @@ Learn math - https://github.com/fchollet/keras/blob/master/examples/addition_rnn
 See https://medium.com/@majortal/deep-spelling-9ffef96a24f6#.2c9pu8nlm
 """
 
+Modified by Pavel Surmenok
+
 '''
 
 from __future__ import print_function, division, unicode_literals
@@ -50,9 +52,9 @@ CHARS = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .")
 # Some cleanup:
 NORMALIZE_WHITESPACE_REGEX = re.compile(r'[^\S\n]+', re.UNICODE) # match all whitespace except newlines
 RE_DASH_FILTER = re.compile(r'[\-\˗\֊\‐\‑\‒\–\—\⁻\₋\−\﹣\－]', re.UNICODE)
-RE_APOSTROPHE_FILTER = re.compile(r'&#39;|[ʼ՚＇‘’‛❛❜ߴߵ`‵´ˊˋ{}{}{}{}{}{}{}{}{}]'.format(unichr(768), unichr(769), unichr(832),
-                                                                                      unichr(833), unichr(2387), unichr(5151),
-                                                                                      unichr(5152), unichr(65344), unichr(8242)),
+RE_APOSTROPHE_FILTER = re.compile(r'&#39;|[ʼ՚＇‘’‛❛❜ߴߵ`‵´ˊˋ{}{}{}{}{}{}{}{}{}]'.format(chr(768), chr(769), chr(832),
+                                                                                      chr(833), chr(2387), chr(5151),
+                                                                                      chr(5152), chr(65344), chr(8242)),
                                   re.UNICODE)
 RE_LEFT_PARENTH_FILTER = re.compile(r'[\(\[\{\⁽\₍\❨\❪\﹙\（]', re.UNICODE)
 RE_RIGHT_PARENTH_FILTER = re.compile(r'[\)\]\}\⁾\₎\❩\❫\﹚\）]', re.UNICODE)
@@ -97,14 +99,14 @@ def vectorize(questions, answers, chars=None):
     print("X = np_zeros")
     X = np_zeros((len_of_questions, x_maxlen, len(chars)), dtype=np.bool)
     print("for i, sentence in enumerate(questions):")
-    for i in xrange(len(questions)):
+    for i in range(len(questions)):
         sentence = questions.pop()
         for j, c in enumerate(sentence):
             X[i, j, ctable.char_indices[c]] = 1
     print("y = np_zeros")
     y = np_zeros((len_of_questions, y_maxlen, len(chars)), dtype=np.bool)
     print("for i, sentence in enumerate(answers):")
-    for i in xrange(len(answers)):
+    for i in range(len(answers)):
         sentence = answers.pop()
         for j, c in enumerate(sentence):
             y[i, j, ctable.char_indices[c]] = 1
@@ -226,17 +228,22 @@ def clean_text(text):
 def read_news(dataset_filename):
     """Read the news corpus"""
     print("reading news")
-    news = open(dataset_filename).read().decode('utf-8')
+    news = open(dataset_filename, encoding='utf-8').read()
     print("read news")
+
     news = clean_text(news)
     print("cleaned text")
+
     counter = Counter(news)
     most_popular_chars = {key for key, _value in counter.most_common(NUMBER_OF_CHARS)}
-    print("".join(sorted(most_popular_chars)))
+    print("".join(sorted(most_popular_chars)).encode('utf-8'))
+
     lines = [line.strip() for line in news.split('\n')]
     print("Read {} lines of input corpus".format(len(lines)))
+
     lines = [line for line in lines if line and not bool(set(line) - most_popular_chars)]
     print("Left with {} lines of input corpus".format(len(lines)))
+
     return lines
 
 
