@@ -66,3 +66,7 @@ target/
 # Temp data
 /data/
 
+# PyCharm files
+.idea/workspace.xml
+.idea/tasks.xml
+
