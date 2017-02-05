@@ -14,18 +14,14 @@ Modified by Pavel Surmenok
 
 '''
 
-from __future__ import print_function, division, unicode_literals
-
-import re
 import numpy as np
-from keras.engine.training import slice_X
 from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout
 from keras.layers import recurrent
 from keras.models import Sequential
-from numpy import zeros as np_zeros # pylint:disable=no-name-in-module
 from numpy.random import seed as random_seed
+from numpy.random import randint as random_randint
 
-from data import read_news, generate_examples, vectorize
+from data import DataSet
 
 random_seed(123) # Reproducibility
 
@@ -42,6 +38,7 @@ HIDDEN_SIZE = 700
 INITIALIZATION = "he_normal" # : Gaussian initialization scaled by fan_in (He et al., 2014)
 NUMBER_OF_CHARS = 100 # 75
 CHARS = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .")
+INVERTED = True
 
 
 def generate_model(output_len, chars=None):
@@ -104,14 +101,9 @@ def iterate_training(model, X_train, y_train, X_val, y_val, ctable):
 
 def main_news():
     """Main"""
-    questions, answers = generate_examples(read_news(DATASET_FILENAME))
-    chars_answer = set.union(*(set(answer) for answer in answers))
-    chars_question = set.union(*(set(question) for question in questions))
-    chars = list(set.union(chars_answer, chars_question))
-    X_train, X_val, y_train, y_val, y_maxlen, ctable = vectorize(questions, answers, chars)
-    print ("y_maxlen, chars", y_maxlen, "".join(chars))
-    model = generate_model(y_maxlen, chars)
-    iterate_training(model, X_train, y_train, X_val, y_val, ctable)
+    dataset = DataSet(DATASET_FILENAME)
+    model = generate_model(dataset.y_maxlen, dataset.chars)
+    iterate_training(model, dataset.X_train, dataset.y_train, dataset.X_val, dataset.y_val, dataset.character_table)
 
 if __name__ == '__main__':
     main_news()
