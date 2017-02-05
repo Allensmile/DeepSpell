@@ -50,18 +50,26 @@ class DataSet(object):
         self.character_table = CharacterTable(self.chars)
 
         split_at = int(len(questions) * (1 - test_set_fraction))
-        (questions_train, questions_test) = (questions[:split_at], questions[split_at:])
-        (answers_train, answers_test) = (answers[:split_at], answers[split_at:])
+        (self.questions_train, self.questions_dev) = (questions[:split_at], questions[split_at:])
+        (self.answers_train, self.answers_dev) = (answers[:split_at], answers[split_at:])
 
-        self.x_maxlen = max(len(question) for question in questions)
-        self.y_maxlen = max(len(answer) for answer in answers)
+        self.x_max_length = max(len(question) for question in questions)
+        self.y_max_length = max(len(answer) for answer in answers)
 
-        self.X_train, self.y_train = self.vectorize(
-            questions_train, answers_train, self.character_table, self.x_maxlen, self.y_maxlen)
+        print("Completed pre-processing")
 
-        self.X_val, self.y_val = self.vectorize(
-            questions_test, answers_test, self.character_table, self.x_maxlen, self.y_maxlen)
+        # self.X_train, self.y_train = self.vectorize(self.questions_train, self.answers_train)
+        # self.X_dev, self.y_dev = self.vectorize(self.questions_dev, self.answers_dev)
 
+    def train_set_batch_generator(self, batch_size):
+        return self.batch_generator(self.questions_train, self.answers_train, batch_size)
+
+    def dev_set_batch_generator(self, batch_size):
+        return self.batch_generator(self.questions_dev, self.answers_train, batch_size)
+
+    def batch_generator(self, questions, answers, batch_size):
+        for i in range(int(len(questions) / batch_size)):
+            yield self.vectorize(questions[i * batch_size : (i + 1) * batch_size], answers[i * batch_size : (i + 1) * batch_size])
 
     def add_noise_to_string(self, a_string, amount_of_noise):
         """Add some artificial spelling mistakes to the string"""
@@ -86,42 +94,26 @@ class DataSet(object):
                         a_string[random_char_position + 2:])
         return a_string
 
-
-    def vectorize(self, questions, answers, character_table, x_maxlen, y_maxlen):
+    def vectorize(self, questions, answers):
         """Vectorize the questions and expected answers"""
-        print('Vectorization...')
 
-        len_of_questions = len(questions)
+        assert len(questions) == len(answers)
 
-        print("X = np_zeros")
-        X = np_zeros((len_of_questions, x_maxlen, character_table.size), dtype=np.bool)
-        print("X.shape = {}".format(X.shape))
+        X = np_zeros((len(questions), self.x_max_length, self.character_table.size), dtype=np.bool)
 
-        print("for i, sentence in enumerate(questions):")
         for i in range(len(questions)):
-            sentence = questions.pop()
+            sentence = questions[i]
             for j, c in enumerate(sentence):
-                X[i, j, character_table.char_indices[c]] = 1
-            if (i + 1) % 10000 == 0:
-                print("Vectorized {} questions".format(i + 1))
+                X[i, j, self.character_table.char_indices[c]] = 1
 
-        print("y = np_zeros")
-        y = np_zeros((len_of_questions, y_maxlen, character_table.size), dtype=np.bool)
-        print("y.shape = {}".format(y.shape))
+        y = np_zeros((len(answers), self.y_max_length, self.character_table.size), dtype=np.bool)
 
-        print("for i, sentence in enumerate(answers):")
         for i in range(len(answers)):
-            sentence = answers.pop()
+            sentence = answers[i]
             for j, c in enumerate(sentence):
-                y[i, j, character_table.char_indices[c]] = 1
-            if (i + 1) % 10000 == 0:
-                print("Vectorized {} answers".format(i + 1))
-
-        print(X.shape)
-        print(y.shape)
+                y[i, j, self.character_table.char_indices[c]] = 1
 
         return X, y
-
 
     def clean_text(self, text):
         """Clean the text - remove unwanted chars, fold punctuation etc."""
@@ -135,7 +127,6 @@ class DataSet(object):
         text = RE_BASIC_CLEANER.sub('', text)
 
         return text
-
 
     def read_news(self, dataset_filename):
         """Read the news corpus"""
@@ -160,7 +151,6 @@ class DataSet(object):
         print("Left with {} lines of input corpus".format(len(lines)))
 
         return lines
-
 
     def generate_examples(self, corpus):
         """Generate examples of misspellings"""
@@ -195,7 +185,6 @@ class DataSet(object):
                 seen_answers.add(answer)
                 answers.append(answer)
 
-        print("")
         print('Shuffle')
         random_shuffle(answers)
         print("Shuffled")

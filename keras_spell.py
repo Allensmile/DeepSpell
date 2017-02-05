@@ -23,20 +23,19 @@ from numpy.random import randint as random_randint
 
 from data import DataSet
 
-random_seed(123) # Reproducibility
+random_seed(123)  # Reproducibility
 
 # Parameters for the model and dataset
 DATASET_FILENAME = 'data/dataset/news.2011.en.shuffled'
-NUMBER_OF_ITERATIONS = 20000
-EPOCHS_PER_ITERATION = 5
+NUMBER_OF_EPOCHS = 100000
 RNN = recurrent.LSTM
 INPUT_LAYERS = 2
 OUTPUT_LAYERS = 2
 AMOUNT_OF_DROPOUT = 0.3
 BATCH_SIZE = 500
 HIDDEN_SIZE = 700
-INITIALIZATION = "he_normal" # : Gaussian initialization scaled by fan_in (He et al., 2014)
-NUMBER_OF_CHARS = 100 # 75
+INITIALIZATION = "he_normal"  # : Gaussian initialization scaled by fan_in (He et al., 2014)
+NUMBER_OF_CHARS = 100  # 75
 CHARS = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .")
 INVERTED = True
 
@@ -75,35 +74,44 @@ class Colors(object):
     close = '\033[0m'
 
 
-def iterate_training(model, X_train, y_train, X_val, y_val, ctable):
+def iterate_training(model, dataset):
     """Iterative Training"""
+
+    X_dev_batch, y_dev_batch = next(dataset.dev_set_batch_generator(1000))
+
     # Train the model each generation and show predictions against the validation dataset
-    for iteration in range(1, NUMBER_OF_ITERATIONS):
+    for epoch in range(1, NUMBER_OF_EPOCHS):
         print()
         print('-' * 50)
-        print('Iteration', iteration)
-        model.fit(X_train, y_train, batch_size=BATCH_SIZE, nb_epoch=EPOCHS_PER_ITERATION, validation_data=(X_val, y_val))
-        # Select 10 samples from the validation set at random so we can visualize errors
+        print('Epoch', epoch)
+
+        for X_batch, y_batch in dataset.train_set_batch_generator(BATCH_SIZE):
+            model.fit(X_batch, y_batch, nb_epoch=1, batch_size=BATCH_SIZE)
+
+        # Select 10 samples from the dev set at random so we can visualize errors
         for _ in range(10):
-            ind = random_randint(0, len(X_val))
-            rowX, rowy = X_val[np.array([ind])], y_val[np.array([ind])] # pylint:disable=no-member
-            preds = model.predict_classes(rowX, verbose=0)
-            q = ctable.decode(rowX[0])
-            correct = ctable.decode(rowy[0])
-            guess = ctable.decode(preds[0], calc_argmax=False)
+            ind = random_randint(0, len(X_dev_batch))
+            row_X, row_y = X_dev_batch[np.array([ind])], y_dev_batch[np.array([ind])]
+            preds = model.predict_classes(row_X, verbose=0)
+            q = dataset.character_table.decode(row_X[0])
+            correct = dataset.character_table.decode(row_y[0])
+            guess = dataset.character_table.decode(preds[0], calc_argmax=False)
+
             if INVERTED:
-                print('Q', q[::-1]) # inverted back!
+                print('Q', q[::-1])  # inverted back!
             else:
                 print('Q', q)
+
             print('A', correct)
             print(Colors.ok + '☑' + Colors.close if correct == guess else Colors.fail + '☒' + Colors.close, guess)
             print('---')
 
+
 def main_news():
     """Main"""
     dataset = DataSet(DATASET_FILENAME)
-    model = generate_model(dataset.y_maxlen, dataset.chars)
-    iterate_training(model, dataset.X_train, dataset.y_train, dataset.X_val, dataset.y_val, dataset.character_table)
+    model = generate_model(dataset.y_max_length, dataset.chars)
+    iterate_training(model, dataset)
 
 if __name__ == '__main__':
     main_news()
