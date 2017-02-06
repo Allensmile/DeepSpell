@@ -36,6 +36,7 @@ INPUT_LAYERS = 2
 OUTPUT_LAYERS = 2
 AMOUNT_OF_DROPOUT = 0.3
 BATCH_SIZE = 64
+SAMPLES_PER_EPOCH = 12800
 HIDDEN_SIZE = 700
 INITIALIZATION = "he_normal"  # : Gaussian initialization scaled by fan_in (He et al., 2014)
 NUMBER_OF_CHARS = 100  # 75
@@ -118,12 +119,12 @@ def iterate_training(model, dataset):
     validation_batch_generator = dataset.dev_set_batch_generator(BATCH_SIZE)
 
     model.fit_generator(train_batch_generator,
-                        samples_per_epoch=dataset.train_set_size,
+                        samples_per_epoch=SAMPLES_PER_EPOCH,
                         nb_epoch=NUMBER_OF_EPOCHS,
                         validation_data=validation_batch_generator,
-                        nb_val_samples=dataset.dev_set_size,
+                        nb_val_samples=SAMPLES_PER_EPOCH,
                         callbacks=[checkpoint, tensorboard, csv_logger, show_samples_callback],
-                        verbose=2)
+                        verbose=1)
 
 
 def save_dataset_params(dataset):
