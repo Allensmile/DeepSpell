@@ -18,8 +18,11 @@ import numpy as np
 from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout
 from keras.layers import recurrent
 from keras.models import Sequential
+from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, LambdaCallback
 from numpy.random import seed as random_seed
 from numpy.random import randint as random_randint
+import os
+import pickle
 
 from data import DataSet
 
@@ -32,12 +35,16 @@ RNN = recurrent.LSTM
 INPUT_LAYERS = 2
 OUTPUT_LAYERS = 2
 AMOUNT_OF_DROPOUT = 0.3
-BATCH_SIZE = 500
+BATCH_SIZE = 64
 HIDDEN_SIZE = 700
 INITIALIZATION = "he_normal"  # : Gaussian initialization scaled by fan_in (He et al., 2014)
 NUMBER_OF_CHARS = 100  # 75
 CHARS = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .")
 INVERTED = True
+MODEL_CHECKPOINT_DIRECTORYNAME = 'models'
+MODEL_CHECKPOINT_FILENAME = 'weights.{epoch:02d}-{val_loss:.2f}.hdf5'
+MODEL_DATASET_PARAMS_FILENAME = 'dataset_params.pickle'
+CSV_LOG_FILENAME = 'log.csv'
 
 
 def generate_model(output_len, chars=None):
@@ -74,42 +81,67 @@ class Colors(object):
     close = '\033[0m'
 
 
+def show_samples(model, dataset, epoch, logs, X_dev_batch, y_dev_batch):
+    """Selects 10 samples from the dev set at random so we can visualize errors"""
+
+    for _ in range(10):
+        ind = random_randint(0, len(X_dev_batch))
+        row_X, row_y = X_dev_batch[np.array([ind])], y_dev_batch[np.array([ind])]
+        preds = model.predict_classes(row_X, verbose=0)
+        q = dataset.character_table.decode(row_X[0])
+        correct = dataset.character_table.decode(row_y[0])
+        guess = dataset.character_table.decode(preds[0], calc_argmax=False)
+
+        if INVERTED:
+            print('Q', q[::-1])  # inverted back!
+        else:
+            print('Q', q)
+
+        print('A', correct)
+        print(Colors.ok + '☑' + Colors.close if correct == guess else Colors.fail + '☒' + Colors.close, guess)
+        print('---')
+
+
+
 def iterate_training(model, dataset):
     """Iterative Training"""
 
+    checkpoint = ModelCheckpoint(MODEL_CHECKPOINT_DIRECTORYNAME + '/' + MODEL_CHECKPOINT_FILENAME)
+    tensorboard = TensorBoard()
+    csv_logger = CSVLogger(CSV_LOG_FILENAME)
+
     X_dev_batch, y_dev_batch = next(dataset.dev_set_batch_generator(1000))
+    show_samples_callback = LambdaCallback(
+        on_epoch_end=lambda epoch, logs: show_samples(model, dataset, epoch, logs, X_dev_batch, y_dev_batch))
 
-    # Train the model each generation and show predictions against the validation dataset
-    for epoch in range(1, NUMBER_OF_EPOCHS):
-        print()
-        print('-' * 50)
-        print('Epoch', epoch)
+    train_batch_generator = dataset.train_set_batch_generator(BATCH_SIZE)
+    validation_batch_generator = dataset.dev_set_batch_generator(BATCH_SIZE)
 
-        for X_batch, y_batch in dataset.train_set_batch_generator(BATCH_SIZE):
-            model.fit(X_batch, y_batch, nb_epoch=1, batch_size=BATCH_SIZE)
+    model.fit_generator(train_batch_generator,
+                        samples_per_epoch=dataset.train_set_size,
+                        nb_epoch=NUMBER_OF_EPOCHS,
+                        batch_size=BATCH_SIZE,
+                        validation_data=validation_batch_generator,
+                        nb_val_samples=dataset.dev_set_size,
+                        callbacks=[checkpoint, tensorboard, csv_logger, show_samples_callback],
+                        verbose=2)
 
-        # Select 10 samples from the dev set at random so we can visualize errors
-        for _ in range(10):
-            ind = random_randint(0, len(X_dev_batch))
-            row_X, row_y = X_dev_batch[np.array([ind])], y_dev_batch[np.array([ind])]
-            preds = model.predict_classes(row_X, verbose=0)
-            q = dataset.character_table.decode(row_X[0])
-            correct = dataset.character_table.decode(row_y[0])
-            guess = dataset.character_table.decode(preds[0], calc_argmax=False)
 
-            if INVERTED:
-                print('Q', q[::-1])  # inverted back!
-            else:
-                print('Q', q)
-
-            print('A', correct)
-            print(Colors.ok + '☑' + Colors.close if correct == guess else Colors.fail + '☒' + Colors.close, guess)
-            print('---')
+def save_dataset_params(dataset):
+    params = { 'chars': dataset.chars, 'y_max_length': dataset.y_max_length }
+    with open(MODEL_CHECKPOINT_DIRECTORYNAME + '/' + MODEL_DATASET_PARAMS_FILENAME, 'wb') as f:
+        pickle.dump(params, f)
 
 
 def main_news():
     """Main"""
     dataset = DataSet(DATASET_FILENAME)
+
+    if not os.path.exists(MODEL_CHECKPOINT_DIRECTORYNAME):
+        os.makedirs(MODEL_CHECKPOINT_DIRECTORYNAME)
+
+    save_dataset_params(dataset)
+
     model = generate_model(dataset.y_max_length, dataset.chars)
     iterate_training(model, dataset)
 

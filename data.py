@@ -56,10 +56,10 @@ class DataSet(object):
         self.x_max_length = max(len(question) for question in questions)
         self.y_max_length = max(len(answer) for answer in answers)
 
-        print("Completed pre-processing")
+        self.train_set_size = len(self.questions_train)
+        self.dev_set_size = len(self.questions_dev)
 
-        # self.X_train, self.y_train = self.vectorize(self.questions_train, self.answers_train)
-        # self.X_dev, self.y_dev = self.vectorize(self.questions_dev, self.answers_dev)
+        print("Completed pre-processing")
 
     def train_set_batch_generator(self, batch_size):
         return self.batch_generator(self.questions_train, self.answers_train, batch_size)
@@ -68,8 +68,21 @@ class DataSet(object):
         return self.batch_generator(self.questions_dev, self.answers_train, batch_size)
 
     def batch_generator(self, questions, answers, batch_size):
-        for i in range(int(len(questions) / batch_size)):
-            yield self.vectorize(questions[i * batch_size : (i + 1) * batch_size], answers[i * batch_size : (i + 1) * batch_size])
+        start_index = 0
+
+        while True:
+            questions_batch = []
+            answers_batch = []
+
+            while len(questions_batch) < batch_size:
+                take = min(len(questions) - start_index, batch_size - len(questions_batch))
+
+                questions_batch.extend(questions[start_index: start_index + take])
+                answers_batch.extend(answers[start_index: start_index + take])
+
+                start_index = (start_index + take) % len(questions)
+
+            yield self.vectorize(questions_batch, answers_batch)
 
     def add_noise_to_string(self, a_string, amount_of_noise):
         """Add some artificial spelling mistakes to the string"""
