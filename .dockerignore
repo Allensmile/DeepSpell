@@ -1,2 +1,4 @@
 data/temp/*
 models/*
+logs/*
+log.csv

@@ -73,3 +73,6 @@ target/
 # Models
 /models/
 
+# Logs
+/logs/
+/log.csv
