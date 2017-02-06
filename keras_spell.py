@@ -120,7 +120,6 @@ def iterate_training(model, dataset):
     model.fit_generator(train_batch_generator,
                         samples_per_epoch=dataset.train_set_size,
                         nb_epoch=NUMBER_OF_EPOCHS,
-                        batch_size=BATCH_SIZE,
                         validation_data=validation_batch_generator,
                         nb_val_samples=dataset.dev_set_size,
                         callbacks=[checkpoint, tensorboard, csv_logger, show_samples_callback],
