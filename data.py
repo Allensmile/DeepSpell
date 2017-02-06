@@ -65,7 +65,7 @@ class DataSet(object):
         return self.batch_generator(self.questions_train, self.answers_train, batch_size)
 
     def dev_set_batch_generator(self, batch_size):
-        return self.batch_generator(self.questions_dev, self.answers_train, batch_size)
+        return self.batch_generator(self.questions_dev, self.answers_dev, batch_size)
 
     def batch_generator(self, questions, answers, batch_size):
         start_index = 0
