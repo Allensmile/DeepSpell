@@ -1,4 +1,4 @@
-FROM gcr.io/tensorflow/tensorflow:0.12.0-rc1-py3
+FROM gcr.io/tensorflow/tensorflow:1.0.0-rc1-gpu-py3
 
 ARG deepspell_dir=/opt/deepspell
 ARG deepspell_user=deepspell
@@ -8,7 +8,7 @@ RUN mkdir -p ${deepspell_dir}
 
 RUN apt-get update && apt-get install -y git
 
-ARG KERAS_VERSION=1.1.2
+ARG KERAS_VERSION=1.2.1
 ENV KERAS_BACKEND=tensorflow
 RUN pip3 --no-cache-dir install --no-dependencies git+https://github.com/fchollet/keras.git@${KERAS_VERSION}
 
