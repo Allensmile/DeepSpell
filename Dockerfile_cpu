@@ -12,6 +12,8 @@ ARG KERAS_VERSION=1.2.1
 ENV KERAS_BACKEND=tensorflow
 RUN pip3 --no-cache-dir install --no-dependencies git+https://github.com/fchollet/keras.git@${KERAS_VERSION}
 
+RUN pip3 --no-cache-dir install h5py
+
 # dump package lists
 RUN dpkg-query -l > /dpkg-query-l.txt \
  && pip3 freeze > /pip3-freeze.txt
@@ -25,4 +27,4 @@ USER ${deepspell_user}
 
 WORKDIR ${deepspell_dir}
 
-CMD /bin/bash
+CMD /bin/sh /opt/deepspell/run.sh
