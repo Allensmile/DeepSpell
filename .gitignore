@@ -67,6 +67,10 @@ target/
 .idea/workspace.xml
 .idea/tasks.xml
 
+# Markdown navigator
+.idea/markdown-navigator.xml
+.idea/markdown-navigator/
+
 # Temp data
 /data/
 
